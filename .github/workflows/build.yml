@@ -27,9 +27,9 @@ jobs:
       id: check-deps
       run: |
         if [ ! -d "libs" ] || [ -z "$(ls -A libs/*.jar 2>/dev/null)" ]; then
-          echo "⚠️ Warning: libs folder is empty or does not exist"
-          echo "⚠️ NetMusic mod is required for complete build"
+          echo "❌ Missing dependency: NetMusic jar not found in libs/"
           echo "has_deps=false" >> $GITHUB_OUTPUT
+          exit 1
         else
           echo "✅ Found dependency files:"
           ls -lh libs/
