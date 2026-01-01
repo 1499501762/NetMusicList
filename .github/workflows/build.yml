@@ -37,12 +37,12 @@ jobs:
         fi
         
     - name: Build project
+      if: ${{ steps.check-deps.outputs.has_deps == 'true' }}
       run: gradle build --no-daemon --stacktrace
-      continue-on-error: ${{ steps.check-deps.outputs.has_deps == 'false' }}
       
     - name: Run tests
+      if: ${{ steps.check-deps.outputs.has_deps == 'true' }}
       run: gradle test --no-daemon
-      continue-on-error: true
       
     - name: Upload build artifacts
       if: success()
