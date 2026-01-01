@@ -6,14 +6,4 @@ pluginManagement {
         }
         gradlePluginPortal()
     }
-
-    // Allow resolving loom snapshots directly from the Fabric Maven even when the
-    // plugin marker (fabric-loom.gradle.plugin) is not published there.
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.id == 'fabric-loom') {
-                useModule("net.fabricmc:fabric-loom:${requested.version}")
-            }
-        }
-    }
-}
+}}
