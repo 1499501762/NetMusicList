@@ -9,84 +9,50 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Java 21
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '21'
-        
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
 
-    - name: Fetch NetMusic dependency (optional)
-      if: env.NETMUSIC_URL != ''
-      run: |
-        mkdir -p libs
-        echo "Downloading NetMusic from $NETMUSIC_URL"
-        curl -L "$NETMUSIC_URL" -o "libs/${NETMUSIC_FILENAME:-netmusic.jar}"
-        ls -lh libs/
-      env:
-        NETMUSIC_URL: ${{ env.NETMUSIC_URL }}
-        NETMUSIC_FILENAME: ${{ env.NETMUSIC_FILENAME }}
-      
-    - name: Check dependencies
-      id: check-deps
-      run: |
-        if [ ! -d "libs" ] || [ -z "$(ls -A libs/*.jar 2>/dev/null)" ]; then
-          echo "❌ Missing dependency: NetMusic jar not found in libs/"
-          echo "has_deps=false" >> $GITHUB_OUTPUT
-          exit 1
-        else
-          echo "✅ Found dependency files:"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Fetch NetMusic (optional)
+        if: env.NETMUSIC_URL != ''
+        env:
+          NETMUSIC_URL: ${{ env.NETMUSIC_URL }}
+          NETMUSIC_FILENAME: ${{ env.NETMUSIC_FILENAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p libs
+          echo "Downloading NetMusic from $NETMUSIC_URL"
+          curl -L "$NETMUSIC_URL" -o "libs/${NETMUSIC_FILENAME:-netmusic.jar}"
           ls -lh libs/
-          echo "has_deps=true" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Build project
-      if: ${{ steps.check-deps.outputs.has_deps == 'true' }}
-      run: gradle build --no-daemon --stacktrace
-      
-    - name: Run tests
-      if: ${{ steps.check-deps.outputs.has_deps == 'true' }}
-      run: gradle test --no-daemon
-      
-    - name: Upload build artifacts
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: netmusiclist-build-${{ github.sha }}
-        path: build/libs/*.jar
-        retention-days: 7
-        
-    - name: Upload test reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-reports
-        path: build/reports/
-        retention-days: 7
 
-  code-quality:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Java 21
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '21'
-        
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
-      
-    - name: Check code quality
-      run: gradle check --no-daemon
-      continue-on-error: true
+      - name: Build
+        run: gradle build --no-daemon --stacktrace
+
+      - name: Test
+        run: gradle test --no-daemon --stacktrace
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: netmusiclist-build-${{ github.sha }}
+          path: build/libs/*.jar
+          retention-days: 7
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/
+          retention-days: 7
