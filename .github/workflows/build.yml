@@ -22,6 +22,17 @@ jobs:
         
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
+
+    - name: Fetch NetMusic dependency (optional)
+      if: env.NETMUSIC_URL != ''
+      run: |
+        mkdir -p libs
+        echo "Downloading NetMusic from $NETMUSIC_URL"
+        curl -L "$NETMUSIC_URL" -o "libs/${NETMUSIC_FILENAME:-netmusic.jar}"
+        ls -lh libs/
+      env:
+        NETMUSIC_URL: ${{ env.NETMUSIC_URL }}
+        NETMUSIC_FILENAME: ${{ env.NETMUSIC_FILENAME }}
       
     - name: Check dependencies
       id: check-deps
