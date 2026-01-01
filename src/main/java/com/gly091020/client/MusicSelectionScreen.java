@@ -77,7 +77,7 @@ public class MusicSelectionScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         // 渲染半透明背景
         this.renderBackground(context);
-        var fontHeight = MinecraftClient.getInstance().textRenderer.fontHeight;
+        int fontHeight = MinecraftClient.getInstance().textRenderer.fontHeight;
 
         // 渲染背景
         context.drawTexture(BACKGROUND_TEXTURE, left, top, 0, 0, backgroundWidth, backgroundHeight);

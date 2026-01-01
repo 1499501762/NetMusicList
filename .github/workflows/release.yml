@@ -1,0 +1,115 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 匹配 v1.0.0, v1.2.3 等格式
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 设置 Java 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+        
+    - name: 赋予 gradlew 执行权限
+      run: chmod +x gradlew
+      
+    - name: 获取版本号
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        
+    - name: 更新 gradle.properties 版本
+      run: |
+        sed -i "s/mod_version=.*/mod_version=${{ steps.version.outputs.version }}/" gradle.properties
+        
+    - name: 检查 NetMusic 依赖
+      id: check-deps
+      run: |
+        if [ ! -d "libs" ] || [ -z "$(ls -A libs/*.jar 2>/dev/null)" ]; then
+          echo "❌ 错误: 缺少 NetMusic 依赖！"
+          echo "请在 libs 文件夹中放置 netmusic-1.21.1 的 jar 文件"
+          exit 1
+        else
+          echo "✅ 找到依赖文件:"
+          ls -lh libs/
+        fi
+        
+    - name: 构建发布版本
+      run: ./gradlew build --no-daemon --stacktrace
+      env:
+        BUILD_RELEASE: true
+        
+    - name: 准备发布文件
+      run: |
+        mkdir -p release
+        cp build/libs/*-${{ steps.version.outputs.version }}.jar release/ 2>/dev/null || cp build/libs/*.jar release/
+        ls -lh release/
+        
+    - name: 生成变更日志
+      id: changelog
+      run: |
+        # 获取上一个 tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREVIOUS_TAG" ]; then
+          echo "这是首次发布！"
+          CHANGELOG="## 🎉 首次发布\n\n### 功能特性\n- 为 Minecraft 1.21.1 提供网络音乐播放列表支持\n- 支持多首歌曲管理\n- 三种播放模式：循环、顺序、随机"
+        else
+          echo "生成从 $PREVIOUS_TAG 到 ${{ steps.version.outputs.tag }} 的变更日志"
+          CHANGELOG=$(git log $PREVIOUS_TAG..${{ steps.version.outputs.tag }} --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        # 保存到文件
+        echo -e "## 📦 NetMusicList ${{ steps.version.outputs.version }}\n" > RELEASE_NOTES.md
+        echo -e "### Minecraft 版本\n- **Minecraft**: 1.21.1\n- **Fabric API**: 0.107.0+1.21.1\n- **Java**: 21\n\n" >> RELEASE_NOTES.md
+        echo -e "### 变更内容\n$CHANGELOG\n" >> RELEASE_NOTES.md
+        echo -e "\n### 📥 安装说明\n" >> RELEASE_NOTES.md
+        echo -e "1. 确保已安装 [Fabric Loader](https://fabricmc.net/use/) 和 [Fabric API](https://modrinth.com/mod/fabric-api)\n" >> RELEASE_NOTES.md
+        echo -e "2. 确保已安装 [NetMusic 模组](https://www.mcmod.cn/class/2329.html) 1.21.1 版本\n" >> RELEASE_NOTES.md
+        echo -e "3. 将下载的 jar 文件放入 `.minecraft/mods` 文件夹\n" >> RELEASE_NOTES.md
+        echo -e "4. 启动游戏即可使用\n" >> RELEASE_NOTES.md
+        
+        cat RELEASE_NOTES.md
+        
+    - name: 创建 GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: NetMusicList v${{ steps.version.outputs.version }}
+        body_path: RELEASE_NOTES.md
+        files: |
+          release/*.jar
+          LICENSE.txt
+          UPGRADE_1.21.1.md
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 发布总结
+      run: |
+        echo "## 🎉 发布成功！" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**版本**: ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "**文件**:" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        ls -lh release/ >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 [查看发布页面](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
