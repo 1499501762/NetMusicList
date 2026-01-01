@@ -3,9 +3,10 @@ package com.gly091020;
 import com.github.tartaricacid.netmusic.init.InitBlocks;
 import com.github.tartaricacid.netmusic.item.ItemMusicCD;
 import com.gly091020.client.MusicSelectionScreen;
-import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -33,8 +34,9 @@ public class NetMusicListItem extends ItemMusicCD {
             NbtCompound tag = stack.getOrCreateNbt();
             if(tag != null && tag.contains(listKey)){
                 var l = new ArrayList<SongInfo>();
-                for(Object compound: tag.getList(listKey, NbtElement.COMPOUND_TYPE).toArray()){
-                    var c1 = ((NbtCompound)compound);
+                NbtList nbtList = tag.getList(listKey, NbtElement.COMPOUND_TYPE);
+                for(int i = 0; i < nbtList.size(); i++){
+                    var c1 = nbtList.getCompound(i);
                     l.add(ItemMusicCD.SongInfo.deserializeNBT(c1));
                 }
                 return l;
@@ -113,7 +115,7 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static ItemStack setSongInfo(SongInfo info, ItemStack stack) {
         if (stack.getItem() == NetMusicList.MUSIC_LIST_ITEM) {
-            var l = getSongInfoList(stack);
+            List<SongInfo> l = getSongInfoList(stack);
             NbtCompound oldCompound = new NbtCompound();
             {
                 var l1 = new NbtList();
@@ -126,7 +128,7 @@ public class NetMusicListItem extends ItemMusicCD {
             }
 
             NbtCompound tag = stack.getOrCreateNbt();
-            var l1 = getSongInfoList(stack);
+            List<SongInfo> l1 = getSongInfoList(stack);
             if(getSongIndex(stack) >= l1.size()){
                 var nl = tag.getList(listKey, NbtElement.COMPOUND_TYPE);
                 var sn = new NbtCompound();
@@ -154,7 +156,7 @@ public class NetMusicListItem extends ItemMusicCD {
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
         String name;
         String text;
         name = Text.translatable("tooltip.net_music_list.play_mode").getString();
