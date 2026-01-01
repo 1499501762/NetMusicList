@@ -65,7 +65,7 @@ public class NetMusicListItem extends ItemMusicCD {
     }
 
     public static SongInfo getSongInfo(ItemStack stack) {
-        var l = getSongInfoList(stack);
+        List<SongInfo> l = getSongInfoList(stack);
         if(l.isEmpty()){
             return null;
         }
@@ -86,7 +86,7 @@ public class NetMusicListItem extends ItemMusicCD {
             } else if (!l.contains("index")) {
                 var l1 = new NbtCompound();
                 l1.putInt("index", 0);
-                var l2 = getSongInfoList(stack);
+                List<SongInfo> l2 = getSongInfoList(stack);
                 var nl1 = new NbtList();
                 for (SongInfo songInfo : l2) {
                     var n1 = new NbtCompound();
@@ -225,7 +225,7 @@ public class NetMusicListItem extends ItemMusicCD {
             return ActionResult.PASS;
         }
         if(context.getWorld().isClient){
-            var l = getSongInfoList(stack);
+            List<SongInfo> l = getSongInfoList(stack);
             MusicSelectionScreen.open(l, getPlayMode(stack), getSongIndex(stack));
         }
         return ActionResult.SUCCESS;
