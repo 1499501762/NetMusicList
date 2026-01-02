@@ -30,9 +30,11 @@ jobs:
         run: chmod +x $GITHUB_WORKSPACE/gradlew
 
       - name: Download NetMusic dependency
+        working-directory: ${{ github.workspace }}
         run: ./gradlew downloadDependencies --no-daemon
 
       - name: Build with Gradle
+        working-directory: ${{ github.workspace }}
         run: ./gradlew build --no-daemon --stacktrace
 
       - name: Upload build artifacts

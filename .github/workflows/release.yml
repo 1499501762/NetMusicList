@@ -34,6 +34,7 @@ jobs:
       run: chmod +x $GITHUB_WORKSPACE/gradlew
 
     - name: Download NetMusic dependency  
+      working-directory: ${{ github.workspace }}
       run: ./gradlew downloadDependencies --no-daemon
       
     - name: Get version
@@ -48,6 +49,7 @@ jobs:
         sed -i "s/mod_version=.*/mod_version=${{ steps.version.outputs.version }}/" gradle.properties
         
     - name: Build release version
+      working-directory: ${{ github.workspace }}
       run: ./gradlew build --no-daemon --stacktrace
       env:
         BUILD_RELEASE: true
