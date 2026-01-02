@@ -39,7 +39,7 @@
 
 3. 取消注释 `build.gradle` 中的依赖行：
    ```gradle
-   modImplementation "blank:netmusic-1.21.1:1.1.7"
+   modImplementation "blank:netmusic-1.21.1:1.2.1"
    ```
    根据实际的 NetMusic 版本调整版本号。
 

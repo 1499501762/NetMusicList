@@ -7,6 +7,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -31,7 +33,7 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static List<SongInfo> getSongInfoList(ItemStack stack) {
         if (stack.getItem() == NetMusicList.MUSIC_LIST_ITEM) {
-            NbtCompound tag = stack.getOrCreateNbt();
+            NbtCompound tag = getOrCreateData(stack);
             if(tag != null && tag.contains(listKey)){
                 var l = new ArrayList<SongInfo>();
                 NbtList nbtList = tag.getList(listKey, NbtElement.COMPOUND_TYPE);
@@ -76,12 +78,12 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static Integer getSongIndex(ItemStack stack){
         if (stack.getItem() == NetMusicList.MUSIC_LIST_ITEM) {
-            var l = stack.getNbt();
+            var l = getData(stack);
             if(l == null) {
                 var l1 = new NbtCompound();
                 l1.putInt("index", 0);
                 l1.put(listKey, new NbtList());
-                stack.setNbt(l1);
+                setData(stack, l1);
                 return 0;
             } else if (!l.contains("index")) {
                 var l1 = new NbtCompound();
@@ -94,7 +96,7 @@ public class NetMusicListItem extends ItemMusicCD {
                     nl1.add(n1);
                 }
                 l1.put(listKey, nl1);
-                stack.setNbt(l1);
+                setData(stack, l1);
                 return 0;
             }else{
                 return l.getInt("index");
@@ -105,11 +107,9 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static void setSongIndex(ItemStack stack, Integer index){
         if (stack.getItem() == NetMusicList.MUSIC_LIST_ITEM) {
-            var n = stack.getNbt();
-            if(n == null){
-                n = new NbtCompound();
-            }
+            var n = getOrCreateData(stack);
             n.putInt("index", index);
+            setData(stack, n);
         }
     }
 
@@ -127,7 +127,7 @@ public class NetMusicListItem extends ItemMusicCD {
                 oldCompound.put(listKey, l1);
             }
 
-            NbtCompound tag = stack.getOrCreateNbt();
+            NbtCompound tag = getOrCreateData(stack);
             List<SongInfo> l1 = getSongInfoList(stack);
             if(getSongIndex(stack) >= l1.size()){
                 var nl = tag.getList(listKey, NbtElement.COMPOUND_TYPE);
@@ -136,7 +136,7 @@ public class NetMusicListItem extends ItemMusicCD {
                 nl.add(sn);
                 tag.put(listKey, nl);
                 setSongIndex(stack, l1.size() + 1);
-                stack.setNbt(tag);
+                setData(stack, tag);
                 return stack;
             }
             var d = l1.get(getSongIndex(stack));
@@ -149,7 +149,7 @@ public class NetMusicListItem extends ItemMusicCD {
             SongInfo.serializeNBT(info, sn);
             nl.setElement(getSongIndex(stack), sn);
             tag.put(listKey, nl);
-            stack.setNbt(tag);
+            setData(stack, tag);
         }
 
         return stack;
@@ -198,18 +198,15 @@ public class NetMusicListItem extends ItemMusicCD {
     }
 
     public static PlayMode getPlayMode(ItemStack stack){
-        var n = stack.getNbt();
+        var n = getData(stack);
         if(n == null || !n.contains("play_mode")){setPlayMode(stack, PlayMode.LOOP);return PlayMode.LOOP;}
         return PlayMode.getMode(n.getInt("play_mode"));
     }
 
     public static void setPlayMode(ItemStack stack, PlayMode mode){
-        var n = stack.getNbt();
-        if(n == null){
-            n = new NbtCompound();
-        }
+        var n = getOrCreateData(stack);
         n.putInt("play_mode", mode.ordinal());
-        stack.setNbt(n);
+        setData(stack, n);
     }
 
     @Override
@@ -237,5 +234,23 @@ public class NetMusicListItem extends ItemMusicCD {
             return Text.translatable("item.net_music_list.name", getSongInfoList(stack).size());
         }
         return Text.translatable("item.net_music_list.info", super.getName(stack));
+    }
+
+    private static NbtCompound getData(ItemStack stack) {
+        NbtComponent component = stack.get(DataComponentTypes.CUSTOM_DATA);
+        return component != null ? component.copyNbt() : null;
+    }
+
+    private static NbtCompound getOrCreateData(ItemStack stack) {
+        NbtCompound tag = getData(stack);
+        if (tag == null) {
+            tag = new NbtCompound();
+            setData(stack, tag);
+        }
+        return tag;
+    }
+
+    private static void setData(ItemStack stack, NbtCompound tag) {
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
     }
 }

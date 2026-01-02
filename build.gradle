@@ -1,16 +1,7 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven { url 'https://maven.fabricmc.net/' }
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath 'net.fabricmc:fabric-loom:1.3.12'
-    }
+plugins {
+    id 'fabric-loom' version '1.8-SNAPSHOT'
+    id 'maven-publish'
 }
-
-apply plugin: 'fabric-loom'
-apply plugin: 'maven-publish'
 
 version = project.mod_version
 group = project.maven_group
@@ -21,14 +12,12 @@ base {
 
 
 repositories {
-    // Public repositories
     mavenCentral()
     maven { url 'https://maven.fabricmc.net/' }
-    maven { url 'https://api.modrinth.com/maven' }
-
-    // Local fallback for manually provided jars
+    
+    // Local libs directory
     flatDir {
-        dirs "libs"
+        dirs 'libs'
     }
 }
 
@@ -39,8 +28,12 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    // TODO: 需要手动下载并放置 netmusic-1.21.1 版本的 jar 文件到 libs 文件夹
-    // modImplementation "blank:netmusic-1.21.1:1.1.7"
+    
+    // NetMusic dependency from local libs directory
+    // Run './gradlew downloadDependencies' to auto-download
+    // Or manually download from: https://modrinth.com/mod/netmusic
+    modCompileOnly fileTree(dir: 'libs', include: '*.jar')
+    modLocalRuntime fileTree(dir: 'libs', include: '*.jar')
 }
 
 processResources {
@@ -101,4 +94,148 @@ publishing {
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
     }
+}
+
+// Task to download NetMusic dependency automatically (optional)
+tasks.register('downloadDependencies') {
+    description = 'Downloads NetMusic dependency from Modrinth (optional)'
+    group = 'dependencies'
+    
+    doLast {
+        def libsDir = file('libs')
+        if (!libsDir.exists()) {
+            libsDir.mkdirs()
+        }
+        
+        // Check if any jar already exists
+        def existingJars = fileTree(dir: libsDir, include: '*.jar')
+        if (!existingJars.isEmpty()) {
+            println "✅ NetMusic dependency already exists:"
+            existingJars.each { println "   - ${it.name}" }
+            return
+        }
+        
+        println "📥 Attempting to download NetMusic dependency..."
+        println "   If download fails, please manually download from:"
+        println "   https://modrinth.com/mod/net-music/versions"
+        println ""
+        
+        // Try multiple download sources
+        def downloadSources = [
+            [
+                name: 'Modrinth API',
+                url: 'https://api.modrinth.com/v2/project/net-music/version/1.2.1-fabric%2Bmc1.21.1',
+                isApi: true
+            ]
+        ]
+        
+        def targetFile = new File(libsDir, 'net-music-1.2.1-fabric+mc1.21.1.jar')
+        def downloaded = false
+        
+        for (source in downloadSources) {
+            if (downloaded) break
+            
+            try {
+                println "📥 Trying ${source.name}..."
+                
+                if (source.isApi) {
+                    def apiResponse = new URL(source.url).getText('UTF-8')
+                    def json = new groovy.json.JsonSlurper().parseText(apiResponse)
+                    
+                    if (json.files && !json.files.isEmpty()) {
+                        // prefer primary file when available
+                        def primary = json.files.find { it.primary }
+                        def selected = primary ?: json.files[0]
+                        def downloadUrl = selected.url
+                        targetFile = new File(libsDir, selected.filename ?: targetFile.name)
+                        new URL(downloadUrl).withInputStream { input ->
+                            targetFile.withOutputStream { output ->
+                                output << input
+                            }
+                        }
+                        downloaded = true
+                    }
+                } else {
+                    new URL(source.url).withInputStream { input ->
+                        targetFile.withOutputStream { output ->
+                            output << input
+                        }
+                    }
+                    downloaded = true
+                }
+                
+                if (downloaded) {
+                    println "✅ Successfully downloaded!"
+                    println "   File: ${targetFile.name} (${String.format('%.2f', targetFile.length() / 1024 / 1024)} MB)"
+                }
+                
+            } catch (Exception e) {
+                println "⚠️  ${source.name} failed: ${e.message}"
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+            }
+        }
+        
+        if (!downloaded) {
+            println ""
+            println "❌ Automatic download failed"
+            println ""
+            println "📝 Please manually download NetMusic:"
+            println "   1. Visit: https://modrinth.com/mod/net-music/versions"
+            println "      Download version 1.2.1 for Fabric 1.21.1 (author: TartaricAcid)"
+            println "   2. Download the jar file"
+            println "   3. Place it in: ${libsDir.absolutePath}"
+            println ""
+            println "   Or run the helper script:"
+            println "   - Windows: .\\download-dependency.ps1"
+            println "   - Linux/Mac: ./download-dependency.sh"
+            println ""
+        }
+    }
+}
+
+// Check for NetMusic dependency before compilation
+tasks.register('checkDependencies') {
+    description = 'Checks if NetMusic dependency exists'
+    group = 'dependencies'
+    dependsOn 'downloadDependencies'
+    
+    doLast {
+        def libsDir = file('libs')
+        def existingJars = fileTree(dir: libsDir, include: '*.jar')
+        
+        if (existingJars.isEmpty()) {
+            println ""
+            println "=" * 80
+            println "WARNING: NetMusic dependency not found!"
+            println "=" * 80
+            println ""
+            println "[Download URL]"
+            println "  https://modrinth.com/mod/net-music/versions"
+            println "  -> Find version: 1.2.1 (Fabric, Minecraft 1.21.1), author: TartaricAcid"
+            println ""
+            println "[Alternative Sources]"
+            println "  MC Encyclopedia: https://www.mcmod.cn/class/2335.html"
+            println ""
+            println "[Place Into]"
+            println "  ${libsDir.absolutePath}"
+            println ""
+            println "[Detailed Instructions]"
+            println "  See '如何下载依赖.txt' in project root"
+            println ""
+            println "=" * 80
+            println ""
+            throw new GradleException("NetMusic dependency is required. Please download and place in libs/ directory.")
+        } else {
+            println "✅ Found NetMusic dependency:"
+            existingJars.each { println "   - ${it.name}" }
+        }
+    }
+}
+
+// Check dependencies before compilation (mandatory)
+tasks.named('compileJava') {
+    dependsOn 'downloadDependencies'
+    dependsOn 'checkDependencies'
 }

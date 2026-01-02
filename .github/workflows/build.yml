@@ -22,24 +22,17 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
+        with:
+          cache-read-only: false
 
-      - name: Fetch NetMusic (optional)
-        if: env.NETMUSIC_URL != ''
-        env:
-          NETMUSIC_URL: ${{ env.NETMUSIC_URL }}
-          NETMUSIC_FILENAME: ${{ env.NETMUSIC_FILENAME }}
-        run: |
-          set -euo pipefail
-          mkdir -p libs
-          echo "Downloading NetMusic from $NETMUSIC_URL"
-          curl -L "$NETMUSIC_URL" -o "libs/${NETMUSIC_FILENAME:-netmusic.jar}"
-          ls -lh libs/
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-      - name: Build
-        run: gradle build --no-daemon --stacktrace
+      - name: Download NetMusic dependency
+        run: ./gradlew downloadDependencies --no-daemon
 
-      - name: Test
-        run: gradle test --no-daemon --stacktrace
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon --stacktrace
 
       - name: Upload build artifacts
         if: success()

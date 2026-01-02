@@ -26,17 +26,14 @@ jobs:
         
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
+      with:
+        cache-read-only: false
 
-    - name: Fetch NetMusic dependency (optional)
-      if: env.NETMUSIC_URL != ''
-      run: |
-        mkdir -p libs
-        echo "Downloading NetMusic from $NETMUSIC_URL"
-        curl -L "$NETMUSIC_URL" -o "libs/${NETMUSIC_FILENAME:-netmusic.jar}"
-        ls -lh libs/
-      env:
-        NETMUSIC_URL: ${{ env.NETMUSIC_URL }}
-        NETMUSIC_FILENAME: ${{ env.NETMUSIC_FILENAME }}
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Download NetMusic dependency  
+      run: ./gradlew downloadDependencies --no-daemon
       
     - name: Get version
       id: version
@@ -49,20 +46,8 @@ jobs:
       run: |
         sed -i "s/mod_version=.*/mod_version=${{ steps.version.outputs.version }}/" gradle.properties
         
-    - name: Check NetMusic dependency
-      id: check-deps
-      run: |
-        if [ ! -d "libs" ] || [ -z "$(ls -A libs/*.jar 2>/dev/null)" ]; then
-          echo "❌ Error: NetMusic dependency is missing!"
-          echo "Please place netmusic-1.21.1 jar file in the libs folder"
-          exit 1
-        else
-          echo "✅ Found dependency files:"
-          ls -lh libs/
-        fi
-        
     - name: Build release version
-      run: gradle build --no-daemon --stacktrace
+      run: ./gradlew build --no-daemon --stacktrace
       env:
         BUILD_RELEASE: true
         

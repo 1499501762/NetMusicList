@@ -1,8 +1,10 @@
 package com.gly091020;
 
 import com.github.tartaricacid.netmusic.init.InitItems;
+import com.gly091020.network.SendDataPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -17,16 +19,20 @@ public class NetMusicList implements ModInitializer {
     public static final NetMusicListItem MUSIC_LIST_ITEM = new NetMusicListItem(new Item.Settings().maxCount(1));
     @Override
     public void onInitialize() {
-        Registry.register(Registries.ITEM, new Identifier(ModID, "music_list"), MUSIC_LIST_ITEM);
-        ServerPlayNetworking.registerGlobalReceiver(new Identifier(ModID, "send_data"), (minecraftServer, serverPlayerEntity, serverPlayNetworkHandler, packetByteBuf, packetSender) -> {
-            var stack = serverPlayerEntity.getMainHandStack();
-            if(stack.isOf(MUSIC_LIST_ITEM)){
-                NetMusicListItem.setSongIndex(stack, packetByteBuf.readInt());
-                NetMusicListItem.setPlayMode(stack, PlayMode.getMode(packetByteBuf.readInt()));
-            }
+        Registry.register(Registries.ITEM, Identifier.of(ModID, "music_list"), MUSIC_LIST_ITEM);
+        PayloadTypeRegistry.playC2S().register(SendDataPayload.ID, SendDataPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SendDataPayload.ID, (payload, context) -> {
+            context.server().execute(() -> {
+                var player = context.player();
+                var stack = player.getMainHandStack();
+                if (stack.isOf(MUSIC_LIST_ITEM)) {
+                    NetMusicListItem.setSongIndex(stack, payload.index());
+                    NetMusicListItem.setPlayMode(stack, PlayMode.getMode(payload.playModeOrdinal()));
+                }
+            });
         });
         ItemGroupEvents.modifyEntriesEvent(RegistryKey.of(RegistryKeys.ITEM_GROUP,
-                new Identifier("netmusic", "netmusic_group"))).register(fabricItemGroupEntries ->
+                Identifier.of("netmusic", "netmusic_group"))).register(fabricItemGroupEntries ->
                 fabricItemGroupEntries.addAfter(new ItemStack(InitItems.MUSIC_CD),
                         new ItemStack(MUSIC_LIST_ITEM)));
     }

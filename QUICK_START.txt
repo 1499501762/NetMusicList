@@ -1,0 +1,54 @@
+QUICK START - NetMusicList Build Guide
+========================================
+
+BEFORE YOU BUILD - Download NetMusic Dependency
+------------------------------------------------
+
+This project requires NetMusic as a compile dependency.
+
+1. Open in browser:
+   https://modrinth.com/mod/net-music/versions (author: TartaricAcid)
+
+2. Find and click:
+   Version "1.2.1 for Fabric 1.21.1"
+
+3. Click "Download" button
+
+4. Move the downloaded jar file to:
+   D:\Dev\NetMusicList\libs\
+
+5. Verify the file exists:
+   libs\net-music-1.2.1-fabric+mc1.21.1.jar (or equivalent filename containing 1.2.1 and Fabric 1.21.1)
+
+Alternative Download Sources:
+- MC Encyclopedia: https://www.mcmod.cn/class/2335.html
+- CurseForge: Search "NetMusic"
+
+
+BUILD THE PROJECT
+-----------------
+
+After placing NetMusic jar in libs/:
+
+.\gradlew.bat build
+
+The build output will be in:
+build\libs\
+
+
+TROUBLESHOOTING
+---------------
+
+If you see "NetMusic dependency not found":
+→ Make sure you placed the jar file in libs/ directory
+
+If build fails with compilation errors:
+→ Make sure you downloaded the Fabric version (not Forge)
+→ Make sure the version is 1.2.1 for Minecraft 1.21.1
+
+If Gradle fails to download other dependencies:
+→ Check your internet connection
+→ If behind a proxy, configure gradle.properties
+
+
+For more details, see readme.md

@@ -1,0 +1,40 @@
+NetMusicList 依赖下载指南
+====================================
+
+本项目需要 NetMusic 作为编译依赖。由于自动下载暂不可用，请手动下载：
+
+【下载步骤】
+----------
+1. 打开浏览器访问:
+   https://modrinth.com/mod/net-music/versions （作者 TartaricAcid）
+
+2. 在版本列表中找到:
+   1.2.1 for Fabric 1.21.1
+
+3. 点击该版本，然后点击 "Download" 按钮
+
+4. 将下载的文件 (如 net-music-1.2.1-fabric+mc1.21.1.jar) 移动到:
+   D:\Dev\NetMusicList\libs\
+
+【备用下载源】
+-----------
+如果 Modrinth 无法访问，可以尝试:
+- MC百科: https://www.mcmod.cn/class/2335.html
+- CurseForge: 搜索 "NetMusic"
+- GitHub: https://github.com/TartaricAcid/NetMusic/releases
+
+【验证下载】
+----------
+确保以下文件存在:
+   libs\ 目录中含有版本号 1.2.1 且标注 Fabric 1.21.1 的 jar 文件
+
+【下一步】
+--------
+下载完成后，运行:
+  gradlew.bat build
+
+【问题排查】
+----------
+- 如果浏览器无法访问 Modrinth，可能需要配置代理
+- 确保下载的是 Fabric 版本，不是 Forge 版本
+- 文件名保持原样，不要随意重命名（包含 1.2.1 和 Fabric 1.21.1 即可）

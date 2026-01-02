@@ -141,7 +141,7 @@ on:
 
 ### 构建失败：缺少 NetMusic 依赖
 
-**问题**: `Could not find blank:netmusic-1.21.1:1.1.7`
+**问题**: `Could not find blank:netmusic-1.21.1:1.2.1`
 
 **解决方案**:
 1. 确保 `libs` 文件夹存在并包含 NetMusic jar 文件

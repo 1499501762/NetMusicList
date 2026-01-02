@@ -3,8 +3,8 @@ package com.gly091020.client;
 import com.github.tartaricacid.netmusic.item.ItemMusicCD;
 import com.gly091020.NetMusicList;
 import com.gly091020.PlayMode;
+import com.gly091020.network.SendDataPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -19,8 +19,7 @@ import java.util.List;
 
 public class MusicSelectionScreen extends Screen {
     private final List<String> musicList;
-    private static final Identifier BACKGROUND_TEXTURE = new Identifier(NetMusicList.ModID,
-            "textures/gui/bg.png");
+    private static final Identifier BACKGROUND_TEXTURE = Identifier.of(NetMusicList.ModID, "textures/gui/bg.png");
     private final int backgroundWidth = 256;
     private final int backgroundHeight = 230;
     private int left, top;
@@ -76,7 +75,7 @@ public class MusicSelectionScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         // 渲染半透明背景
-        this.renderBackground(context);
+        this.renderBackground(context, mouseX, mouseY, delta);
         int fontHeight = MinecraftClient.getInstance().textRenderer.fontHeight;
 
         // 渲染背景
@@ -109,7 +108,6 @@ public class MusicSelectionScreen extends Screen {
             this.musicName = musicName;
         }
 
-        @Override
         public Text getNarration() {
             return Text.literal(musicName);
         }
@@ -141,26 +139,16 @@ public class MusicSelectionScreen extends Screen {
 
     public void sendPackage(){
         this.index = listWidget.getSelectedIndex();
-        var p = PacketByteBufs.create();
-        p.writeInt(index);
-        p.writeInt(playModeButton.playMode.ordinal());
-        ClientPlayNetworking.send(new Identifier(NetMusicList.ModID, "send_data"), p);
+        ClientPlayNetworking.send(new SendDataPayload(index, playModeButton.playMode.ordinal()));
     }
 
     private class MusicListWidget extends AlwaysSelectedEntryListWidget<MusicListEntry> {
         public MusicListWidget() {
-            super(MusicSelectionScreen.this.client, backgroundWidth - 10,
-                    backgroundHeight - 50, MusicSelectionScreen.this.top + 24 + textRenderer.fontHeight,
-                    backgroundHeight + MusicSelectionScreen.this.top - 100,
+            super(MusicSelectionScreen.this.client,
+                    backgroundWidth - 10,
+                    backgroundHeight - 50,
+                    MusicSelectionScreen.this.top + 24 + textRenderer.fontHeight,
                     textRenderer.fontHeight + 1);
-            this.left = MusicSelectionScreen.this.left + 5;
-            this.right = backgroundWidth + MusicSelectionScreen.this.left - 5;
-            this.setRenderHorizontalShadows(false);
-        }
-
-        @Override
-        protected int getScrollbarPositionX() {
-            return this.left + this.width - 6;
         }
 
         @Override
@@ -170,16 +158,6 @@ public class MusicSelectionScreen extends Screen {
 
         public void addMusicEntry(String musicName) {
             this.addEntry(new MusicListEntry(musicName));
-        }
-
-        @Override
-        public void setRenderSelection(boolean renderSelection) {
-            super.setRenderSelection(renderSelection);
-        }
-
-        @Override
-        protected void renderBackground(DrawContext context) {
-            context.fill(left, top, right, bottom, 0x000000);
         }
 
         public Integer getSelectedIndex(){
@@ -213,7 +191,7 @@ public class MusicSelectionScreen extends Screen {
         }
 
         @Override
-        protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
             context.drawTexture(BACKGROUND_TEXTURE, this.getX(), this.getY(),
                     this.isHovered() ? 22 : 0, 230, this.width, this.height);
             var x = 0;
