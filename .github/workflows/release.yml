@@ -65,11 +65,25 @@ jobs:
       env:
         BUILD_RELEASE: true
         
+    - name: Debug build output
+      run: |
+        echo "=== Build libs directory content ==="
+        ls -lh build/libs/ || echo "build/libs does not exist"
+        echo ""
+        echo "=== Checking JAR contents ==="
+        for jar in build/libs/*.jar; do
+          if [ -f "$jar" ]; then
+            echo "JAR: $(basename $jar)"
+            jar tf "$jar" | head -30
+            echo "... (showing first 30 entries)"
+          fi
+        done
+        
     - name: Prepare release files
       run: |
         mkdir -p release
         # Find main JAR file (excluding sources.jar)
-        ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "*.jar" | grep -v "sources.jar" | head -n 1)
+        ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "netmusiclist-*.jar" | grep -v "sources.jar" | head -n 1)
         if [ -z "$ARTIFACT" ]; then
           echo "No release jar found in build/libs"
           echo "Available files:"

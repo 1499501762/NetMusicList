@@ -77,6 +77,9 @@ java {
 }
 
 jar {
+    manifest {
+        attributes "Manifest-Version": "1.0"
+    }
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}" }
     }
@@ -243,3 +246,43 @@ tasks.named('compileJava') {
     dependsOn 'downloadDependencies'
     dependsOn 'checkDependencies'
 }
+
+// Verify JAR contents after build
+tasks.register('verifyJar') {
+    description = 'Verifies JAR file contents'
+    group = 'verification'
+    dependsOn 'build'
+    
+    doLast {
+        def libsDir = file('build/libs')
+        if (!libsDir.exists()) {
+            throw new GradleException("build/libs directory not found after build!")
+        }
+        
+        def jars = fileTree(dir: libsDir, include: '*.jar', exclude: '*-sources.jar')
+        if (jars.isEmpty()) {
+            throw new GradleException("No JAR files found in build/libs!")
+        }
+        
+        jars.each { jar ->
+            println "Analyzing: ${jar.name}"
+            
+            // Check for class files
+            def process = "jar tf ${jar.absolutePath}".execute()
+            def output = process.text
+            def classFileCount = output.count('.class\n')
+            
+            println "  Total entries: ${output.split('\n').size()}"
+            println "  Class files: ${classFileCount}"
+            
+            if (classFileCount == 0) {
+                throw new GradleException("❌ JAR file '${jar.name}' contains no class files! Build may have failed.")
+            } else {
+                println "  ✅ JAR appears valid (contains ${classFileCount} class files)"
+            }
+        }
+    }
+}
+
+// Make build task verify JAR contents
+build.dependsOn verifyJar
