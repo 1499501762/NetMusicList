@@ -251,7 +251,6 @@ tasks.named('compileJava') {
 tasks.register('verifyJar') {
     description = 'Verifies JAR file contents'
     group = 'verification'
-    dependsOn 'build'
     
     doLast {
         def libsDir = file('build/libs')
@@ -284,5 +283,7 @@ tasks.register('verifyJar') {
     }
 }
 
-// Make build task verify JAR contents
-build.dependsOn verifyJar
+// Make build task finalize with verifyJar (runs after, but not as dependency)
+tasks.named('build') {
+    finalizedBy 'verifyJar'
+}
