@@ -53,14 +53,16 @@ jobs:
     - name: Update gradle.properties version
       run: |
         sed -i "s/mod_version=.*/mod_version=${{ steps.version.outputs.version }}/" gradle.properties
+        echo "Updated gradle.properties:"
+        cat gradle.properties | grep mod_version
         
     - name: Build release version
       working-directory: ${{ github.workspace }}
       run: |
         if [ -f ./gradlew ]; then
-          ./gradlew build --no-daemon --stacktrace
+          ./gradlew clean build --no-daemon --stacktrace
         else
-          echo "gradlew not found, using system gradle" && gradle build --no-daemon --stacktrace
+          echo "gradlew not found, using system gradle" && gradle clean build --no-daemon --stacktrace
         fi
       env:
         BUILD_RELEASE: true
@@ -68,16 +70,27 @@ jobs:
     - name: Debug build output
       run: |
         echo "=== Build libs directory content ==="
-        ls -lh build/libs/ || echo "build/libs does not exist"
-        echo ""
-        echo "=== Checking JAR contents ==="
-        for jar in build/libs/*.jar; do
-          if [ -f "$jar" ]; then
-            echo "JAR: $(basename $jar)"
-            jar tf "$jar" | head -30
-            echo "... (showing first 30 entries)"
-          fi
-        done
+        if [ -d "build/libs" ]; then
+          ls -lh build/libs/
+          echo ""
+          echo "=== Checking JAR contents ==="
+          for jar in build/libs/*.jar; do
+            if [ -f "$jar" ]; then
+              echo ""
+              echo "JAR: $(basename $jar)"
+              echo "Size: $(stat -c%s "$jar") bytes"
+              echo "Entries (first 20):"
+              jar tf "$jar" | head -20
+              echo ""
+              echo "Checking for class files:"
+              jar tf "$jar" | grep "\.class$" | wc -l
+              echo "class files found"
+            fi
+          done
+        else
+          echo "build/libs does not exist"
+          ls -la build/ || echo "build directory not found"
+        fi
         
     - name: Prepare release files
       run: |
@@ -127,7 +140,7 @@ jobs:
         name: NetMusicList v${{ steps.version.outputs.version }}
         body_path: RELEASE_NOTES.md
         files: |
-          build/libs/netmusiclist-*.jar
+          build/libs/netmusiclist-${{ steps.version.outputs.version }}.jar
           LICENSE.txt
           UPGRADE_1.21.1.md
         draft: false
