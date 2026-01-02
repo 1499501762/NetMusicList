@@ -56,40 +56,117 @@ jobs:
         echo "Updated gradle.properties:"
         cat gradle.properties | grep mod_version
         
+    - name: Pre-build checks
+      working-directory: ${{ github.workspace }}
+      run: |
+        echo "=== Pre-build Environment Checks ==="
+        echo "Current directory: $(pwd)"
+        echo "Java version:"
+        java -version 2>&1
+        echo ""
+        echo "Gradle wrapper exists:"
+        [ -f ./gradlew ] && echo "✅ ./gradlew found" || echo "❌ ./gradlew NOT found"
+        echo ""
+        echo "Key files:"
+        ls -la build.gradle settings.gradle 2>/dev/null || echo "build.gradle or settings.gradle not found"
+        echo ""
+        echo "Dependencies in libs/:"
+        ls -lh libs/ 2>/dev/null || echo "No libs/ directory"
+        echo ""
+        echo "gradle.properties:"
+        cat gradle.properties | grep -E "^(minecraft|fabric|loader|mod)_"
+        echo ""
+        
     - name: Build release version
       working-directory: ${{ github.workspace }}
       run: |
+        echo "=== Starting Build ==="
         if [ -f ./gradlew ]; then
-          ./gradlew clean build --no-daemon --stacktrace
+          # Force complete cleanup
+          rm -rf build/ .gradle/
+          echo "✅ Cleaned build and gradle cache"
+          echo ""
+          
+          # Run build with explicit jar tasks
+          ./gradlew clean downloadDependencies checkDependencies compileJava processResources classes jar remapJar --no-daemon --stacktrace 2>&1 | tee build.log
+          BUILD_EXIT=$?
+          
+          echo ""
+          echo "Build exit code: $BUILD_EXIT"
+          echo ""
+          echo "=== Checking if JAR was created ==="
+          ls -lh build/libs/ 2>/dev/null || echo "No build/libs directory"
         else
-          echo "gradlew not found, using system gradle" && gradle clean build --no-daemon --stacktrace
+          echo "gradlew not found, using system gradle"
+          gradle clean build --no-daemon --stacktrace
         fi
       env:
         BUILD_RELEASE: true
+    
+    - name: Diagnose jar task
+      working-directory: ${{ github.workspace }}
+      if: always()
+      run: |
+        echo "=== Running JAR Diagnostics ==="
+        if [ -f ./gradlew ]; then
+          ./gradlew diagnoseJar --no-daemon 2>&1 | tail -40
+        fi
+        
+        echo ""
+        echo "=== Checking Gradle tasks execution ==="
+        grep -E "^> Task|^Task " build.log 2>/dev/null | tail -20 || echo "No build.log found"
         
     - name: Debug build output
+      if: always()
       run: |
-        echo "=== Build libs directory content ==="
+        echo "=== Checking Build Output ==="
+        echo ""
+        echo "Files in build directory:"
+        find build -type f -name "*.jar" 2>/dev/null | head -10 || echo "No JAR files found in build/"
+        echo ""
         if [ -d "build/libs" ]; then
-          ls -lh build/libs/
+          echo "Contents of build/libs (detailed):"
+          ls -lh build/libs/ 2>/dev/null
           echo ""
-          echo "=== Checking JAR contents ==="
           for jar in build/libs/*.jar; do
             if [ -f "$jar" ]; then
+              FILESIZE=$(stat -c%s "$jar" 2>/dev/null || stat -f%z "$jar" 2>/dev/null || echo "unknown")
               echo ""
+              echo "=========================================="
               echo "JAR: $(basename $jar)"
-              echo "Size: $(stat -c%s "$jar") bytes"
-              echo "Entries (first 20):"
-              jar tf "$jar" | head -20
-              echo ""
-              echo "Checking for class files:"
-              jar tf "$jar" | grep "\.class$" | wc -l
-              echo "class files found"
+              echo "Size: ${FILESIZE} bytes"
+              echo "=========================================="
+              
+              # Try to list JAR contents
+              if jar tf "$jar" > /tmp/jar_contents.txt 2>&1; then
+                TOTAL_ENTRIES=$(wc -l < /tmp/jar_contents.txt)
+                CLASS_FILES=$(grep -c "\.class$" /tmp/jar_contents.txt || echo "0")
+                
+                echo "Total entries: ${TOTAL_ENTRIES}"
+                echo "Class files: ${CLASS_FILES}"
+                echo ""
+                
+                if [ "$CLASS_FILES" -eq 0 ]; then
+                  echo "⚠️  WARNING: No class files found!"
+                  echo "JAR contents:"
+                  cat /tmp/jar_contents.txt
+                else
+                  echo "✅ JAR contains ${CLASS_FILES} class files"
+                  echo ""
+                  echo "First 20 entries:"
+                  head -20 /tmp/jar_contents.txt
+                fi
+              else
+                echo "❌ Failed to list JAR contents"
+                cat /tmp/jar_contents.txt
+              fi
             fi
           done
         else
-          echo "build/libs does not exist"
-          ls -la build/ || echo "build directory not found"
+          echo "❌ build/libs directory does not exist"
+          echo ""
+          echo "Contents of build directory:"
+          find build -type d | head -20
         fi
         
     - name: Prepare release files

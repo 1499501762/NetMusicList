@@ -131,6 +131,57 @@ tasks.register('debugBuild') {
     }
 }
 
+// Diagnose jar task configuration
+tasks.register('diagnoseJar') {
+    description = 'Diagnose jar task configuration'
+    group = 'debug'
+    dependsOn 'classes'
+    
+    doLast {
+        println ""
+        println "=== JAR Task Diagnostics ==="
+        println ""
+        
+        // Check jar task configuration
+        def jarTask = tasks.jar
+        println "Jar task:"
+        println "  Name: ${jarTask.name}"
+        println "  Enabled: ${jarTask.enabled}"
+        println ""
+        
+        // Check jar sources
+        println "Jar inputs:"
+        jarTask.inputs.files.files.each { file ->
+            def count = fileTree(dir: file, include: '**/*').size()
+            println "  ${file.absolutePath} (${count} files)"
+        }
+        
+        println ""
+        println "Jar outputs:"
+        jarTask.outputs.files.files.each { file ->
+            println "  ${file.absolutePath}"
+        }
+        
+        // Check if remapJar task exists and its configuration
+        println ""
+        if (tasks.findByName('remapJar')) {
+            def remapTask = tasks.remapJar
+            println "RemapJar task found:"
+            println "  Enabled: ${remapTask.enabled}"
+            println "  Outputs:"
+            remapTask.outputs.files.files.each { file ->
+                println "    ${file.absolutePath}"
+            }
+        } else {
+            println "⚠️  RemapJar task not found!"
+        }
+        
+        println ""
+        println "=== End JAR Diagnostics ==="
+        println ""
+    }
+}
+
 // configure the maven publication
 publishing {
     publications {
