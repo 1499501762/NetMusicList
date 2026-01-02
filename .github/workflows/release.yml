@@ -3,7 +3,7 @@ name: Release on Tag
 on:
   push:
     tags:
-      - 'v*.*.*'  # 匹配 v1.0.0, v1.2.3 等格式
+      - 'v*.*.*'  # Match v1.0.0, v1.2.3, etc.
 
 permissions:
   contents: write
@@ -68,7 +68,7 @@ jobs:
     - name: Prepare release files
       run: |
         mkdir -p release
-        # 查找不是 sources.jar 的主 JAR 文件
+        # Find main JAR file (excluding sources.jar)
         ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "*.jar" | grep -v "sources.jar" | head -n 1)
         if [ -z "$ARTIFACT" ]; then
           echo "No release jar found in build/libs"
@@ -84,37 +84,36 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        # 获取上一个 tag
+        # Get previous tag
         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
         
         if [ -z "$PREVIOUS_TAG" ]; then
-          echo "这是首次发布！"
-          CHANGELOG="## 🎉 首次发布\n\n### 功能特性\n- 为 Minecraft 1.21.1 提供网络音乐播放列表支持\n- 支持多首歌曲管理\n- 三种播放模式：循环、顺序、随机"
+          echo "This is the first release!"
+          CHANGELOG="## 🎉 Initial Release\n\n### Features\n- Network music playlist support for Minecraft 1.21.1\n- Multi-song management\n- Three play modes: Loop, Sequential, Random"
         else
-          echo "生成从 $PREVIOUS_TAG 到 ${{ steps.version.outputs.tag }} 的变更日志"
+          echo "Generating changelog from $PREVIOUS_TAG to ${{ steps.version.outputs.tag }}"
           CHANGELOG=$(git log $PREVIOUS_TAG..${{ steps.version.outputs.tag }} --pretty=format:"- %s (%h)" --no-merges)
         fi
         
-        # 保存到文件
+        # Save to file
         echo -e "## 📦 NetMusicList ${{ steps.version.outputs.version }}\n" > RELEASE_NOTES.md
-        echo -e "### Minecraft 版本\n- **Minecraft**: 1.21.1\n- **Fabric API**: 0.107.0+1.21.1\n- **Java**: 21\n\n" >> RELEASE_NOTES.md
-        echo -e "### 变更内容\n$CHANGELOG\n" >> RELEASE_NOTES.md
-        echo -e "\n### 📥 安装说明\n" >> RELEASE_NOTES.md
-        echo -e "1. 确保已安装 [Fabric Loader](https://fabricmc.net/use/) 和 [Fabric API](https://modrinth.com/mod/fabric-api)\n" >> RELEASE_NOTES.md
-        echo -e "2. 确保已安装 [NetMusic 模组](https://www.mcmod.cn/class/2329.html) 1.21.1 版本\n" >> RELEASE_NOTES.md
-        echo -e "3. 将下载的 jar 文件放入 `.minecraft/mods` 文件夹\n" >> RELEASE_NOTES.md
-        echo -e "4. 启动游戏即可使用\n" >> RELEASE_NOTES.md
+        echo -e "### Minecraft Version\n- **Minecraft**: 1.21.1\n- **Fabric API**: 0.107.0+1.21.1\n- **Java**: 21\n\n" >> RELEASE_NOTES.md
+        echo -e "### Changelog\n$CHANGELOG\n" >> RELEASE_NOTES.md
+        echo -e "\n### 📥 Installation\n" >> RELEASE_NOTES.md
+        echo -e "1. Make sure [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api) are installed\n" >> RELEASE_NOTES.md
+        echo -e "2. Make sure [NetMusic Mod](https://www.mcmod.cn/class/2329.html) version 1.21.1 is installed\n" >> RELEASE_NOTES.md
+        echo -e "3. Place the downloaded jar file into the `.minecraft/mods` folder\n" >> RELEASE_NOTES.md
+        echo -e "4. Launch the game to use it\n" >> RELEASE_NOTES.md
         
         cat RELEASE_NOTES.md
         
-    - name: 创建 GitHub Release
+    - name: Create Release on GitHub
       uses: softprops/action-gh-release@v1
       with:
         name: NetMusicList v${{ steps.version.outputs.version }}
         body_path: RELEASE_NOTES.md
         files: |
-          build/libs/netmusiclist-1.1.jar
-          build/libs/netmusiclist-1.1-sources.jar
+          build/libs/netmusiclist-*.jar
           LICENSE.txt
           UPGRADE_1.21.1.md
         draft: false
