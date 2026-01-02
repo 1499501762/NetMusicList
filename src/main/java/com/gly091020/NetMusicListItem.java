@@ -3,6 +3,8 @@ package com.gly091020;
 import com.github.tartaricacid.netmusic.init.InitBlocks;
 import com.github.tartaricacid.netmusic.item.ItemMusicCD;
 import com.gly091020.client.MusicSelectionScreen;
+import com.gly091020.NetMusicListConfig;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
@@ -39,7 +41,12 @@ public class NetMusicListItem extends ItemMusicCD {
                 NbtList nbtList = tag.getList(listKey, NbtElement.COMPOUND_TYPE);
                 for(int i = 0; i < nbtList.size(); i++){
                     var c1 = nbtList.getCompound(i);
-                    l.add(ItemMusicCD.SongInfo.deserializeNBT(c1));
+                    var info = ItemMusicCD.SongInfo.deserializeNBT(c1);
+                    if (FabricLoader.getInstance().isModLoaded("net_music_login_need") && info.vip) {
+                        // 安装 login need 时允许播放，清除 vip 标记
+                        info.vip = false;
+                    }
+                    l.add(info);
                 }
                 return l;
             }
@@ -115,6 +122,10 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static ItemStack setSongInfo(SongInfo info, ItemStack stack) {
         if (stack.getItem() == NetMusicList.MUSIC_LIST_ITEM) {
+            if (FabricLoader.getInstance().isModLoaded("net_music_login_need") && info.vip) {
+                // 安装 login need 时，存入列表前去掉 vip 标记
+                info.vip = false;
+            }
             List<SongInfo> l = getSongInfoList(stack);
             NbtCompound oldCompound = new NbtCompound();
             {
@@ -135,7 +146,8 @@ public class NetMusicListItem extends ItemMusicCD {
                 SongInfo.serializeNBT(info, sn);
                 nl.add(sn);
                 tag.put(listKey, nl);
-                setSongIndex(stack, l1.size() + 1);
+                // point to the newly added song (last index)
+                setSongIndex(stack, Math.max(nl.size() - 1, 0));
                 setData(stack, tag);
                 return stack;
             }
@@ -159,13 +171,14 @@ public class NetMusicListItem extends ItemMusicCD {
     public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType type) {
         String name;
         String text;
-        name = Text.translatable("tooltip.net_music_list.play_mode").getString();
-        text = "§a▍ §7" + name + ": §6" + getPlayMode(stack).getName().getString();
+        if(NetMusicListConfig.get().showPlayModeTooltip){
+            name = Text.translatable("tooltip.net_music_list.play_mode").getString();
+            text = "§a▍ §7" + name + ": §6" + getPlayMode(stack).getName().getString();
+            tooltip.add(Text.literal(text));
+        }
         if(getSongInfoList(stack).isEmpty()){
             tooltip.add(Text.translatable("tooltips.netmusic.cd.empty").formatted(Formatting.RED));
         }
-
-        tooltip.add(Text.literal(text));
         SongInfo info = getSongInfo(stack);
         Language language = Language.getInstance();
         if (info != null) {
@@ -199,7 +212,11 @@ public class NetMusicListItem extends ItemMusicCD {
 
     public static PlayMode getPlayMode(ItemStack stack){
         var n = getData(stack);
-        if(n == null || !n.contains("play_mode")){setPlayMode(stack, PlayMode.LOOP);return PlayMode.LOOP;}
+        if(n == null || !n.contains("play_mode")){
+            PlayMode fallback = NetMusicListConfig.get().defaultPlayMode;
+            setPlayMode(stack, fallback);
+            return fallback;
+        }
         return PlayMode.getMode(n.getInt("play_mode"));
     }
 
@@ -219,6 +236,19 @@ public class NetMusicListItem extends ItemMusicCD {
             if(getSongIndex(stack) >= getSongInfoList(stack).size()){
                 setSongIndex(stack, getSongInfoList(stack).size() - 1);
             }
+            
+            // // 检查当前歌曲是否为 VIP 歌曲，如果是且没有安装 net_music_login_need 模组，则阻止播放
+            // SongInfo currentSong = getSongInfo(stack);
+            // if (currentSong != null && currentSong.vip) {
+            //     boolean hasLoginNeedMod = FabricLoader.getInstance().isModLoaded("net_music_login_need");
+            //     if (!hasLoginNeedMod) {
+            //         if (context.getWorld().isClient) {
+            //             context.getPlayer().sendMessage(Text.translatable("message.netmusic.music_player.need_vip").formatted(Formatting.RED), false);
+            //         }
+            //         return ActionResult.FAIL;
+            //     }
+            // }
+            
             return ActionResult.PASS;
         }
         if(context.getWorld().isClient){

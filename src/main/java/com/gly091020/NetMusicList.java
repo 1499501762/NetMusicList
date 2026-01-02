@@ -19,6 +19,7 @@ public class NetMusicList implements ModInitializer {
     public static final NetMusicListItem MUSIC_LIST_ITEM = new NetMusicListItem(new Item.Settings().maxCount(1));
     @Override
     public void onInitialize() {
+        NetMusicListConfig.get();
         Registry.register(Registries.ITEM, Identifier.of(ModID, "music_list"), MUSIC_LIST_ITEM);
         PayloadTypeRegistry.playC2S().register(SendDataPayload.ID, SendDataPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(SendDataPayload.ID, (payload, context) -> {

@@ -68,7 +68,11 @@ jobs:
     - name: Prepare release files
       run: |
         mkdir -p release
-        cp build/libs/*-${{ steps.version.outputs.version }}.jar release/ 2>/dev/null || cp build/libs/*.jar release/
+        ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "*.jar" ! -name "*-sources.jar" | head -n 1)
+        if [ -z "$ARTIFACT" ]; then
+          echo "No release jar found in build/libs" && ls -lh build/libs && exit 1
+        fi
+        cp "$ARTIFACT" release/
         ls -lh release/
         
     - name: Generate changelog

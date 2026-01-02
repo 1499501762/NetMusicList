@@ -4,6 +4,7 @@ import com.github.tartaricacid.netmusic.item.ItemMusicCD;
 import com.github.tartaricacid.netmusic.tileentity.TileEntityMusicPlayer;
 import com.gly091020.NetMusicList;
 import com.gly091020.NetMusicListItem;
+import com.gly091020.NetMusicListConfig;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -17,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PlayModeMixin {
     @Inject(method = "tick", at = @At("RETURN"))
     private static void nextMusic(World level, BlockPos blockPos, BlockState blockState, TileEntityMusicPlayer te, CallbackInfo ci){
+        if(!NetMusicListConfig.get().autoNextEnabled){
+            return;
+        }
         if(!te.isPlay() && te.getStack(0).isOf(NetMusicList.MUSIC_LIST_ITEM)){
             ItemStack stackInSlot = te.getItems().get(0);
             if (stackInSlot.isEmpty()) {

@@ -52,6 +52,9 @@ public class MusicSelectionScreen extends Screen {
         }
         listWidget.addMusicEntry(Text.translatable("gui.net_music_list.add").getString());
 
+        if (index == null || index < 0 || index >= listWidget.children().size()) {
+            index = 0;
+        }
         listWidget.setSelected(listWidget.children().get(index));
         this.addDrawableChild(listWidget);
 
@@ -74,31 +77,36 @@ public class MusicSelectionScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // 渲染半透明背景
-        this.renderBackground(context, mouseX, mouseY, delta);
         int fontHeight = MinecraftClient.getInstance().textRenderer.fontHeight;
 
-        // 渲染背景
+        // 渲染UI框背景
         context.drawTexture(BACKGROUND_TEXTURE, left, top, 0, 0, backgroundWidth, backgroundHeight);
 
         // 渲染标题
-        context.drawCenteredTextWithShadow(
-                this.textRenderer,
-                this.title,
-                left + backgroundWidth / 2,
-                top + 6,
-                0x404040
+        int titleX = left + backgroundWidth / 2 - this.textRenderer.getWidth(this.title) / 2;
+        context.drawTextWithShadow(
+            this.textRenderer,
+            this.title,
+            titleX,
+            top + 6,
+            0x404040
         );
 
-        context.drawText(
+        context.drawTextWithShadow(
                 this.textRenderer,
                 Text.translatable("gui.net_music_list.play_list"),
                 left + 10,
                 top + 6 + fontHeight + 6,
-                0x000000, false
+                0x000000
         );
 
+        // 调用父类渲染组件
         super.render(context, mouseX, mouseY, delta);
+    }
+    
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        // 禁用默认背景渲染（包括模糊效果）
     }
 
     private class MusicListEntry extends AlwaysSelectedEntryListWidget.Entry<MusicListEntry> {
@@ -121,11 +129,11 @@ public class MusicSelectionScreen extends Screen {
 
             // 渲染文本
             context.drawTextWithShadow(
-                    textRenderer,
-                    Text.literal(musicName),
-                    x + 5,
-                    y + (entryHeight - 10) / 2,
-                    0xFFFFFF
+                textRenderer,
+                Text.literal(musicName),
+                x + 5,
+                y + (entryHeight - 10) / 2,
+                0xFFFFFF
             );
         }
 
@@ -138,7 +146,8 @@ public class MusicSelectionScreen extends Screen {
     }
 
     public void sendPackage(){
-        this.index = listWidget.getSelectedIndex();
+        Integer selected = listWidget.getSelectedIndex();
+        this.index = selected != null && selected >= 0 ? selected : 0;
         ClientPlayNetworking.send(new SendDataPayload(index, playModeButton.playMode.ordinal()));
     }
 
@@ -149,6 +158,8 @@ public class MusicSelectionScreen extends Screen {
                     backgroundHeight - 50,
                     MusicSelectionScreen.this.top + 24 + textRenderer.fontHeight,
                     textRenderer.fontHeight + 1);
+            // Manually set x position to center the widget
+            this.setX(MusicSelectionScreen.this.left + 5);
         }
 
         @Override

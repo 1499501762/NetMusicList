@@ -12,5 +12,9 @@
   "gui.net_music_list.title": "播放列表设置",
   "gui.net_music_list.add": "添加歌曲",
   "gui.net_music_list.close": "关闭",
-  "gui.net_music_list.play_list": "播放列表："
+  "gui.net_music_list.play_list": "播放列表：",
+  "config.net_music_list.title": "网络音乐播放列表设置",
+  "config.net_music_list.default_play_mode": "默认播放模式",
+  "config.net_music_list.auto_next": "播放结束后自动切歌",
+  "config.net_music_list.show_tooltip": "在物品提示中显示播放模式"
 }

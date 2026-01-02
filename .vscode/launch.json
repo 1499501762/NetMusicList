@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach Fabric Client",
+      "type": "java",
+      "request": "attach",
+      "hostName": "127.0.0.1",
+      "port": 5005,
+      "preLaunchTask": "gradle runClient (debug)",
+      "timeout": 30000
+    }
+  ]
+}

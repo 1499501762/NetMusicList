@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "gradle runClient (debug)",
+      "type": "shell",
+      "command": ".\\gradlew.bat",
+      "args": [
+        "runClient",
+        "--console",
+        "plain",
+        "--no-daemon",
+        "--jvm-args",
+        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": "$gradle"
+    }
+  ]
+}

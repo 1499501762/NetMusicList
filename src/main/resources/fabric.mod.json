@@ -17,6 +17,9 @@
     ],
     "main": [
       "com.gly091020.NetMusicList"
+    ],
+    "modmenu": [
+      "com.gly091020.client.ModMenuIntegration"
     ]
   },
   "mixins": [
