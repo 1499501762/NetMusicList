@@ -88,7 +88,7 @@ jar {
 tasks.register('debugBuild') {
     description = 'Debug build output'
     group = 'debug'
-    dependsOn 'compileJava'
+    dependsOn 'classes'
     
     doLast {
         println ""
@@ -101,7 +101,7 @@ tasks.register('debugBuild') {
             def classFiles = fileTree(dir: classesDir, include: '**/*.class')
             println "✅ Classes directory exists"
             println "   Classes found: ${classFiles.size()}"
-            classFiles.take(5).each { println "     - ${it.absolutePath}" }
+            classFiles.take(5).each { println "     - ${it.name}" }
         } else {
             println "❌ Classes directory not found: ${classesDir.absolutePath}"
         }
@@ -118,6 +118,12 @@ tasks.register('debugBuild') {
                 println "    (does not exist)"
             }
         }
+        
+        // Check if remapJar will be run
+        println ""
+        println "Build artifacts expected:"
+        println "  - build/libs/netmusiclist-${project.version}.jar (remapped)"
+        println "  - build/libs/netmusiclist-${project.version}-sources.jar"
         
         println ""
         println "=== End Debug Info ==="

@@ -52,17 +52,26 @@ jobs:
         if: always()
         run: |
           echo "=== Build libs directory content ==="
-          ls -lh build/libs/ || echo "build/libs does not exist"
+          if [ -d "build/libs" ]; then
+            ls -lh build/libs/
+          else
+            echo "build/libs directory not found"
+          fi
           echo ""
           echo "=== Checking JAR contents ==="
-          for jar in build/libs/*.jar; do
-            if [ -f "$jar" ]; then
-              echo "JAR: $(basename $jar)"
-              echo "Size: $(du -h "$jar" | cut -f1)"
-              jar tf "$jar" | head -30
-              echo "... (showing first 30 entries)"
-            fi
-          done
+          if [ -d "build/libs" ]; then
+            for jar in build/libs/*.jar; do
+              if [ -f "$jar" ]; then
+                echo "JAR: $(basename $jar)"
+                echo "Size: $(du -h "$jar" | cut -f1)"
+                echo "Entries (first 30):"
+                jar tf "$jar" | head -30
+                echo "..."
+              fi
+            done
+          else
+            echo "No JAR files found"
+          fi
         if: success()
         uses: actions/upload-artifact@v4
         with:
