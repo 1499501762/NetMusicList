@@ -68,11 +68,17 @@ jobs:
     - name: Prepare release files
       run: |
         mkdir -p release
-        ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "*.jar" ! -name "*-sources.jar" | head -n 1)
+        # 查找不是 sources.jar 的主 JAR 文件
+        ARTIFACT=$(find build/libs -maxdepth 1 -type f -name "*.jar" | grep -v "sources.jar" | head -n 1)
         if [ -z "$ARTIFACT" ]; then
-          echo "No release jar found in build/libs" && ls -lh build/libs && exit 1
+          echo "No release jar found in build/libs"
+          echo "Available files:"
+          ls -lh build/libs/
+          exit 1
         fi
+        echo "Found artifact: $ARTIFACT"
         cp "$ARTIFACT" release/
+        echo "Prepared release files:"
         ls -lh release/
         
     - name: Generate changelog
@@ -107,7 +113,8 @@ jobs:
         name: NetMusicList v${{ steps.version.outputs.version }}
         body_path: RELEASE_NOTES.md
         files: |
-          release/*.jar
+          build/libs/netmusiclist-1.1.jar
+          build/libs/netmusiclist-1.1-sources.jar
           LICENSE.txt
           UPGRADE_1.21.1.md
         draft: false
