@@ -31,11 +31,17 @@ jobs:
 
     - name: Grant execute permission for gradlew
       if: runner.os != 'Windows' && hashFiles('gradlew') != ''
+      working-directory: ${{ github.workspace }}
       run: chmod +x $GITHUB_WORKSPACE/gradlew
 
     - name: Download NetMusic dependency  
       working-directory: ${{ github.workspace }}
-      run: ./gradlew downloadDependencies --no-daemon
+      run: |
+        if [ -f ./gradlew ]; then
+          ./gradlew downloadDependencies --no-daemon
+        else
+          echo "gradlew not found, using system gradle" && gradle downloadDependencies --no-daemon
+        fi
       
     - name: Get version
       id: version
@@ -50,7 +56,12 @@ jobs:
         
     - name: Build release version
       working-directory: ${{ github.workspace }}
-      run: ./gradlew build --no-daemon --stacktrace
+      run: |
+        if [ -f ./gradlew ]; then
+          ./gradlew build --no-daemon --stacktrace
+        else
+          echo "gradlew not found, using system gradle" && gradle build --no-daemon --stacktrace
+        fi
       env:
         BUILD_RELEASE: true
         
