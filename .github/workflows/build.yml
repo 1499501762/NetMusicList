@@ -48,7 +48,21 @@ jobs:
             echo "gradlew not found, using system gradle" && gradle build --no-daemon --stacktrace
           fi
 
-      - name: Upload build artifacts
+      - name: Debug build output
+        if: always()
+        run: |
+          echo "=== Build libs directory content ==="
+          ls -lh build/libs/ || echo "build/libs does not exist"
+          echo ""
+          echo "=== Checking JAR contents ==="
+          for jar in build/libs/*.jar; do
+            if [ -f "$jar" ]; then
+              echo "JAR: $(basename $jar)"
+              echo "Size: $(du -h "$jar" | cut -f1)"
+              jar tf "$jar" | head -30
+              echo "... (showing first 30 entries)"
+            fi
+          done
         if: success()
         uses: actions/upload-artifact@v4
         with:
