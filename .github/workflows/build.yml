@@ -26,7 +26,9 @@ jobs:
           cache-read-only: false
 
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+        working-directory: ${{ github.workspace }}
 
       - name: Download NetMusic dependency
         run: ./gradlew downloadDependencies --no-daemon
