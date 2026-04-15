@@ -69,8 +69,6 @@ jobs:
 
   changelog:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
 
     steps:
     - name: Checkout code
